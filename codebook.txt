@@ -1,0 +1,137 @@
+Project for Getting and Cleaning Data
+
+Getting and Cleaning Data Course Projectless 
+The purpose of this project is to demonstrate your ability to collect, work with, and clean a data set. The goal is to prepare tidy data that can be used for later analysis. You will be graded by your peers on a series of yes/no questions related to the project. You will be required to submit: 1) a tidy data set as described below, 2) a link to a Github repository with your script for performing the analysis, and 3) a code book that describes the variables, the data, and any transformations or work that you performed to clean up the data called CodeBook.md. You should also include a README.md in the repo with your scripts. This repo explains how all of the scripts work and how they are connected.
+
+One of the most exciting areas in all of data science right now is wearable computing - see for example this article . Companies like Fitbit, Nike, and Jawbone Up are racing to develop the most advanced algorithms to attract new users. The data linked to from the course website represent data collected from the accelerometers from the Samsung Galaxy S smartphone. A full description is available at the site where the data was obtained:
+
+http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones
+
+Here are the data for the project:
+
+https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip
+
+You should create one R script called run_analysis.R that does the following.
+
+Merges the training and the test sets to create one data set.
+Extracts only the measurements on the mean and standard deviation for each measurement.
+Uses descriptive activity names to name the activities in the data set
+Appropriately labels the data set with descriptive variable names.
+From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+Good luck!
+
+Description of the DATA
+
+subject:         ID the subject who performed the activity for each window sample. Its range is from 1 to 30.
+activity:	 Activity name
+featDomain:	 Feature: Time domain signal or frequency domain signal (Time or Freq)
+featInstrument:	 Feature: Measuring instrument (Accelerometer or Gyroscope)
+featAcceleration:Feature: Acceleration signal (Body or Gravity)
+featVariable:	 Feature: Variable (Mean or SD)
+featJerk:	 Feature: Jerk signal
+featMagnitude:	 Feature: Magnitude of the signals calculated using the Euclidean norm
+featAxis:	 Feature: 3-axial signals in the X, Y and Z directions (X, Y, or Z)
+featCount:	 Feature: Count of data points used to compute average
+featAverage:	 Feature: Average of each variable for each activity and each subject
+
+Data Set Information
+The experiments have been carried out with a group of 30 volunteers within an age bracket of 19-48 years. Each person performed six activities (WALKING, WALKING_UPSTAIRS, WALKING_DOWNSTAIRS, SITTING, STANDING, LAYING) wearing a smartphone (Samsung Galaxy S II) on the waist. Using its embedded accelerometer and gyroscope, we captured 3-axial linear acceleration and 3-axial angular velocity at a constant rate of 50Hz. The experiments have been video-recorded to label the data manually. The obtained dataset has been randomly partitioned into two sets, where 70% of the volunteers was selected for generating the training data and 30% the test data. 
+
+The sensor signals (accelerometer and gyroscope) were pre-processed by applying noise filters and then sampled in fixed-width sliding windows of 2.56 sec and 50% overlap (128 readings/window). The sensor acceleration signal, which has gravitational and body motion components, was separated using a Butterworth low-pass filter into body acceleration and gravity. The gravitational force is assumed to have only low frequency components, therefore a filter with 0.3 Hz cutoff frequency was used. From each window, a vector of features was obtained by calculating variables from the time and frequency domain. See 'features_info.txt' for more details. 
+
+For each record it is provided:
+======================================
+
+- Triaxial acceleration from the accelerometer (total acceleration) and the estimated body acceleration.
+- Triaxial Angular velocity from the gyroscope. 
+- A 561-feature vector with time and frequency domain variables. 
+- Its activity label. 
+- An identifier of the subject who carried out the experiment.
+
+List the key variables in the data table
+
+Load required packages
+library(dplyr)
+library(data.table)
+library(tidyr)
+
+Download the Data
+
+if(!file.exists("E:/R/data-cleaning")){dir.create("E:/R/data-cleaning")}
+url<-"https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+download.file(url, "E:/R/data-cleaning/dataset.zip",method="curl") 
+unzip ("E:/R/data-cleaning/dataset.zip", exdir = "E:/R/data-cleaning")
+path<- file.path("E:/R/data-cleaning" , "UCI HAR Dataset")
+
+Read the above files and create data tables.
+# Read subject files
+dataSubjectTrain <- tbl_df(read.table(file.path(path, "train", "subject_train.txt")))
+dataSubjectTest  <- tbl_df(read.table(file.path(path, "test" , "subject_test.txt" )))
+
+# Read activity files
+dataActivityTrain <- tbl_df(read.table(file.path(path, "train", "Y_train.txt")))
+dataActivityTest  <- tbl_df(read.table(file.path(path, "test" , "Y_test.txt" )))
+
+#Read data files.
+dataTrain <- tbl_df(read.table(file.path(path, "train", "X_train.txt" )))
+dataTest  <- tbl_df(read.table(file.path(path, "test" , "X_test.txt" )))
+
+1.Merges the training and the test sets to create one data set
+
+# for both Activity and Subject files this will merge the training and the test sets by row binding 
+#and rename variables "subject" and "activityNum"
+alldataSubject <- rbind(dataSubjectTrain, dataSubjectTest)
+setnames(alldataSubject, "V1", "subject")
+alldataActivity<- rbind(dataActivityTrain, dataActivityTest)
+setnames(alldataActivity, "V1", "activityNum")
+
+#combine the DATA training and test files
+dataTable <- rbind(dataTrain, dataTest)
+
+# name variables according to feature e.g.(V1 = "tBodyAcc-mean()-X")
+dataFeatures <- tbl_df(read.table(file.path(path, "features.txt")))
+setnames(dataFeatures, names(dataFeatures), c("featureNum", "featureName"))
+colnames(dataTable) <- dataFeatures$featureName
+
+#column names for activity labels
+activityLabels<- tbl_df(read.table(file.path(path, "activity_labels.txt")))
+setnames(activityLabels, names(activityLabels), c("activityNum","activityName"))
+
+# Merge columns
+alldataSubjAct<- cbind(alldataSubject, alldataActivity)
+dataTable <- cbind(alldataSubjAct, dataTable)
+
+2.Extracts only the measurements on the mean and standard deviation for each measurement.
+# Reading "features.txt" and extracting only the mean and standard deviation
+dataFeaturesMeanStd <- grep("mean\\(\\)|std\\(\\)",dataFeatures$featureName,value=TRUE) #var name
+
+# Taking only measurements for the mean and standard deviation and add "subject","activityNum"
+
+dataFeaturesMeanStd <- union(c("subject","activityNum"), dataFeaturesMeanStd)
+dataTable<- subset(dataTable,select=dataFeaturesMeanStd) 
+
+3.Uses descriptive activity names to name the activities in the data set
+
+##enter name of activity into dataTable
+dataTable <- merge(activityLabels, dataTable , by="activityNum", all.x=TRUE)
+dataTable$activityName <- as.character(dataTable$activityName)
+
+## create dataTable with variable means sorted by subject and Activity
+dataTable$activityName <- as.character(dataTable$activityName)
+dataAggr<- aggregate(. ~ subject - activityName, data = dataTable, mean) 
+dataTable<- tbl_df(arrange(dataAggr,subject,activityName))
+
+4.Appropriately labels the data set with descriptive variable names.
+
+names(dataTable)<-gsub("std()", "SD", names(dataTable))
+names(dataTable)<-gsub("mean()", "MEAN", names(dataTable))
+names(dataTable)<-gsub("^t", "time", names(dataTable))
+names(dataTable)<-gsub("^f", "frequency", names(dataTable))
+names(dataTable)<-gsub("Acc", "Accelerometer", names(dataTable))
+names(dataTable)<-gsub("Gyro", "Gyroscope", names(dataTable))
+names(dataTable)<-gsub("Mag", "Magnitude", names(dataTable))
+names(dataTable)<-gsub("BodyBody", "Body", names(dataTable))
+
+5.From the data set in step 4,creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+
+write.table(dataTable, file = "tidydata.txt",row.name=FALSE)
