@@ -74,10 +74,6 @@ names(dataTable)<-gsub("BodyBody", "Body", names(dataTable))
 head(str(dataTable),6)
 head(dataTable,6)
 
+
 write.table(dataTable, file = "tidydata.txt",row.name=FALSE)
 
-library(knitr)
-knit2html("codebook.Rmd");
-
-knit("makeCodebook.Rmd", output="codebook.md", encoding="ISO8859-1", quiet=TRUE)
-markdownToHTML("codebook.md", "codebook.html")
