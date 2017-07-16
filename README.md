@@ -1,4 +1,4 @@
-# -Getting-and-Cleaning-Data-Course-Project
+# Getting-and-Cleaning-Data-Course-Project
 Author: opalh (https://github.com/opalh/-Getting-and-Cleaning-Data-Course-Project)
 
 Instructions
